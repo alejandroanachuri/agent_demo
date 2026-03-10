@@ -1,1 +1,2 @@
-news_index = []
+que_pasa_jujuy_index = []
+infobae_index = []

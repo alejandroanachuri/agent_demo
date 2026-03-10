@@ -6,17 +6,31 @@ from urllib.parse import urljoin
 from utils import state
 
 @function_tool
-def search_news(topic: str) -> list:
+def search_news_que_pasa_jujuy(topic: str) -> list:
     """
-    Busca noticias en el indice actual.
+    Busca noticias en el indice actual del diario que pasa jujuy.
     """
-    print('Searching local index..')
+    print('Searching local index in Que Pasa Jujuy..')
     results = []
-    for article in state.news_index:
+    for article in state.que_pasa_jujuy_index:
         if topic.lower() in article["title"].lower():
             results.append(article)
     if not results:
-        return state.news_index
+        return state.que_pasa_jujuy_index
+    return results[:10]
+
+@function_tool
+def search_news_infobae(topic: str) -> list:
+    """
+    Busca noticias en el indice actual del diario Infobae con noticias nacionales.
+    """
+    print('Searching local index in Infobae..')
+    results = []
+    for article in state.infobae_index:
+        if topic.lower() in article["title"].lower():
+            results.append(article)
+    if not results:
+        return state.infobae_index
     return results[:10]
 
 @function_tool

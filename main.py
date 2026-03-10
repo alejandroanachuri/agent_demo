@@ -1,37 +1,45 @@
+import os
+from dotenv import load_dotenv
 import asyncio
-from tools.web_tools import search_news, read_article
+from tools.web_tools import search_news_infobae, search_news_que_pasa_jujuy, read_article
 from utils import state
 from utils.web_functions import build_news_index 
-from agents import Agent, RunConfig, Runner, AsyncOpenAI,OpenAIChatCompletionsModel,set_tracing_disabled
+from agents import Agent, RunConfig, Runner, AsyncOpenAI,OpenAIChatCompletionsModel,SQLiteSession, set_tracing_disabled
 from rich.console import Console
 from rich.markdown import Markdown
 from rich import print
 from rich.prompt import Prompt
 
 set_tracing_disabled(True)
-
+load_dotenv()
+nvidia_api_key = os.environ['NVIDIA_API_KEY']
 external_client = AsyncOpenAI(
-    api_key="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",
+    api_key=nvidia_api_key,
     base_url="https://integrate.api.nvidia.com/v1"
 )
 
 agent = Agent(
     name="Lector de diarios digitales",
     instructions="""
-    Eres un agente virtual que me ayuda a leer noticias, para esto cuentas con una 
-    herramienta que busca en un indice local el contenido de noticas extraido de la pagina, 
-    ,usa este indice para hacer resumen de los temas importantes y solo muestra esta informacion, no muestres urls o links 
-    si no te lo pido especificamente, trata de retornar siempre algun resultado aunque
-    no coincida con algun tema y aclara esto.
-    Tambien cuentas con una herramienta para acceder a la nota completa en base a url que obtuvste del indice. 
-    Quiero que hables en un tono amigable simulando que eres
-    Argentino y usando lenguaje informal, siempre que te pida algo confirma que vas
+    Eres un agente virtual que me ayuda a leer noticias, para esto cuentas con 
+    herramientas que buscan en indices locales que contienen noticias de diarios digitales 
+    ,usa estos indices segun el diario que te pida para hacer resumen de los temas 
+    importantes y solo muestra esta informacion, no muestres urls o links si no te 
+    lo pido especificamente, trata de retornar siempre algun resultado aunque
+    no coincida con algun tema y aclara esto. Hay indices por cada diario digital.
+    Tambien cuentas con una herramienta para acceder a la nota completa en base a url 
+    que obtuviste del indice del diario digital correspondiente, si bien me vas a motrar
+    un resumen de la pagina general tambien te voy a pedir que accedas a la nota, si hay varias
+    notas que coinciden con el tema del resumen debes mostrarme el titulo de la notas asi 
+    te puedo pedir la que corresponda. 
+    Mi nombre es Ale y quiero que me hables en un tono amigable simulando que eres
+    Argentino como yo, usando lenguaje informal y juvenil, siempre que te pida algo confirma que vas
     a comenzar una accion.
     Usa las herramientas para acceder a la informacion de la web, no intentes otro medio por ahora.
     """,
     tools=[
-        search_news,
-        #extract_links,
+        search_news_infobae,
+        search_news_que_pasa_jujuy,
         read_article
     ],
     model= OpenAIChatCompletionsModel(
@@ -39,8 +47,12 @@ agent = Agent(
         openai_client=external_client)
 )
 
-state.news_index = build_news_index("https://www.quepasajujuy.com.ar")
+state.que_pasa_jujuy_index = build_news_index("https://www.quepasajujuy.com.ar")
+state.infobae_index = build_news_index("https://www.infobae.com/")
+print(f'Pude extraer ',len(state.que_pasa_jujuy_index),' noticias de Que pasa Jujuy')
+print(f'Pude extraer ',len(state.que_pasa_jujuy_index),' noticias de Infobae')
 
+session = SQLiteSession("user_124")
 async def main():
     console = Console()
     print(":face_with_tongue:","[bold blue]News Agent iniciado. Escribe 'salir' para terminar.\n")
@@ -50,7 +62,7 @@ async def main():
         if user_input.lower() in ["salir", "exit", "quit"]:
             print("Agente finalizado. :vulcan_salute:")
             break
-        result = await Runner.run(agent, user_input)
+        result = await Runner.run(agent, user_input, session=session)
         #print("\nAgente:", result.final_output)
         print("\n:robot: [bold green]Agente:")
         markdown = Markdown(result.final_output)

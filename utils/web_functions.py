@@ -30,7 +30,7 @@ def extract_links(base_url, html):
             "href": full_url
         })
     links = filter_articles(links)    
-    return links[:50]
+    return links[:20]
 
 
 def filter_articles(articles):
@@ -47,8 +47,33 @@ def build_news_index(base_url):
     print("Generating index...")
     index = []
     for link in links:
+        summary = extract_summary(link["href"], link["text"])
         index.append({
             "title": link["text"],
+            "summary":summary,
             "url": link["href"]
         })
     return index
+
+def extract_summary(url, title):
+    try:
+        headers = {"User-Agent": "Mozilla/5.0"}
+        response = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(response.text, "html.parser")
+        # 1️⃣ meta description
+        meta = soup.find("meta", attrs={"name": "description"})
+        if meta and meta.get("content"):
+            return meta["content"][:200]
+
+        # 2️⃣ primer párrafo
+        p = soup.find("p")
+        if p:
+            text = p.get_text(strip=True)
+            if len(text) > 50:
+                return text[:200]
+
+    except Exception as e:
+        print("summary error:", e)
+
+    # 3️⃣ fallback
+    return title
