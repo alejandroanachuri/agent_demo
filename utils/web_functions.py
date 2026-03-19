@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from newspaper import Article, Config
 from urllib.parse import urljoin
+from datetime import date
 
 def open_page(url:str) -> str:
     """
@@ -41,18 +42,27 @@ def filter_articles(articles):
             filtered.append(article)
     return filtered
 
-def build_news_index(base_url):
-    html = open_page(base_url)
-    links = extract_links(base_url, html)
-    print("Generating index...")
+def build_news_index(base_url, source, conn, cursor):
     index = []
-    for link in links:
-        summary = extract_summary(link["href"], link["text"])
-        index.append({
-            "title": link["text"],
-            "summary":summary,
-            "url": link["href"]
-        })
+    if not has_news_for_today(cursor, source):
+        html = open_page(base_url)
+        links = extract_links(base_url, html)
+        print("Generating index...")
+        
+        for link in links:
+            summary = extract_summary(link["href"], link["text"])
+            article = {
+                "title": link["text"],
+                "summary":summary,
+                "url": link["href"],
+                "source":source   
+            }
+            insert_article(article, conn, cursor)
+            index.append({
+                "title": link["text"],
+                "summary":summary,
+                "url": link["href"]
+            })
     return index
 
 def extract_summary(url, title):
@@ -77,3 +87,33 @@ def extract_summary(url, title):
 
     # 3️⃣ fallback
     return title
+
+def insert_article(article, conn, cursor):
+    today = date.today().isoformat()
+    cursor.execute("""
+    INSERT OR IGNORE INTO news (title, summary, url, source, date)
+    VALUES (?, ?, ?, ?, ?)
+    """, (
+        article["title"],
+        article["summary"],
+        article["url"],
+        article["source"],
+        today
+    ))
+    print('Article inserted')
+
+    conn.commit()
+
+def has_news_for_today(cursor, source):
+
+    today = date.today().isoformat()
+
+    cursor.execute("""
+    SELECT COUNT(*)
+    FROM news
+    WHERE date = ? and source = ?
+    """, (today,source,))
+
+    count = cursor.fetchone()[0]
+
+    return count > 0

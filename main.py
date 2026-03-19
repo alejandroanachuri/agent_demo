@@ -47,10 +47,10 @@ agent = Agent(
         openai_client=external_client)
 )
 
-state.que_pasa_jujuy_index = build_news_index("https://www.quepasajujuy.com.ar")
-state.infobae_index = build_news_index("https://www.infobae.com/")
-print(f'Pude extraer ',len(state.que_pasa_jujuy_index),' noticias de Que pasa Jujuy')
-print(f'Pude extraer ',len(state.que_pasa_jujuy_index),' noticias de Infobae')
+build_news_index("https://www.quepasajujuy.com.ar", "quepasajujuy", 
+                 state.connection, state.cursor)
+build_news_index("https://www.infobae.com/", "infobae", 
+                 state.connection, state.cursor)
 
 session = SQLiteSession("user_124")
 async def main():

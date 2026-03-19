@@ -1,4 +1,5 @@
 import sqlite3
+
 conn = sqlite3.connect(
     "news.db",
     check_same_thread=False,
@@ -19,8 +20,3 @@ USING FTS5(
 )
 """)
 conn.commit()
-
-que_pasa_jujuy_index = []
-infobae_index = []
-connection = conn
-cursor = cursor

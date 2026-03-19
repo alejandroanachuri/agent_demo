@@ -4,34 +4,25 @@ from agents import function_tool
 from newspaper import Article, Config
 from urllib.parse import urljoin
 from utils import state
+from datetime import date
+
 
 @function_tool
 def search_news_que_pasa_jujuy(topic: str) -> list:
     """
-    Busca noticias en el indice actual del diario que pasa jujuy.
+    Busca noticias en la base de datos usando una busqueda full-text 
+    del diario que pasa jujuy.
     """
-    print('Searching local index in Que Pasa Jujuy..')
-    results = []
-    for article in state.que_pasa_jujuy_index:
-        if topic.lower() in article["title"].lower():
-            results.append(article)
-    if not results:
-        return state.que_pasa_jujuy_index
-    return results[:10]
+    print('searching in que pasa Jujuy')
+    return db_search('quepasajujuy', topic)
 
 @function_tool
 def search_news_infobae(topic: str) -> list:
     """
     Busca noticias en el indice actual del diario Infobae con noticias nacionales.
     """
-    print('Searching local index in Infobae..')
-    results = []
-    for article in state.infobae_index:
-        if topic.lower() in article["title"].lower():
-            results.append(article)
-    if not results:
-        return state.infobae_index
-    return results[:10]
+    print('Searching in Infobae..')
+    return db_search('infobae', topic)
 
 @function_tool
 def read_article(url):
@@ -47,3 +38,43 @@ def read_article(url):
 
     return article.text
 
+
+def db_search(source, topic):
+    today = date.today().isoformat()
+    print(topic)
+    try:
+        state.cursor.execute("""
+            SELECT title, summary, url
+            FROM news
+            WHERE news MATCH ?
+            AND date = ?
+            AND source = ?
+            ORDER BY bm25(news)
+            LIMIT 10
+            """, (topic, today, source))
+        
+        rows = state.cursor.fetchall()
+        print("Registros encontrados:",rows)
+        if not rows:
+            print("FAllback no encontre match")
+            state.cursor.execute("""
+            SELECT title, summary, url
+            FROM news
+            WHERE date = ?
+            AND source = ?               
+            LIMIT 10
+            """, (today,source))
+        
+            rows = state.cursor.fetchall()
+        results = [
+            {
+                "title": r[0],
+                "summary": r[1],
+                "url": r[2]
+            }
+            for r in rows
+        ]
+        return results[:10]
+    except Exception as e:
+        print("[TOOL ERROR]", e)
+        return [{"error": str(e)}]
