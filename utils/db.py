@@ -9,14 +9,22 @@ conn = sqlite3.connect(
 conn.execute("PRAGMA journal_mode=WAL;")
 
 cursor = conn.cursor()
-cursor.execute("""
-CREATE VIRTUAL TABLE IF NOT EXISTS news
-USING FTS5(
-    title,
-    summary,
-    url,
-    source,
-    date
-)
-""")
-conn.commit()
+def generate_tables():
+    cursor.execute("""
+    CREATE VIRTUAL TABLE IF NOT EXISTS news
+    USING FTS5(
+        title,
+        summary,
+        url,
+        source,
+        date
+    )
+    """)
+    print("Creating embedding table")
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS news_embeddings (
+        url TEXT PRIMARY KEY,
+        embedding TEXT
+    )
+    """)
+    conn.commit()

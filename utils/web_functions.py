@@ -1,8 +1,10 @@
 import requests
+import json
 from bs4 import BeautifulSoup
 from newspaper import Article, Config
 from urllib.parse import urljoin
 from datetime import date
+from utils import state
 
 def open_page(url:str) -> str:
     """
@@ -31,7 +33,7 @@ def extract_links(base_url, html):
             "href": full_url
         })
     links = filter_articles(links)    
-    return links[:20]
+    return links[:30]
 
 
 def filter_articles(articles):
@@ -100,7 +102,14 @@ def insert_article(article, conn, cursor):
         article["source"],
         today
     ))
-    print('Article inserted')
+
+    #Generate embedding
+    embedding = state.model.encode(article["title"] + " " + article["summary"])
+    cursor.execute("""
+        INSERT OR REPLACE INTO news_embeddings (url, title, summary, embedding, date)
+        VALUES (?, ?, ?, ?,?)
+        """, (article["url"],article["title"], article["summary"], 
+              json.dumps(embedding.tolist()), today))
 
     conn.commit()
 
@@ -115,5 +124,5 @@ def has_news_for_today(cursor, source):
     """, (today,source,))
 
     count = cursor.fetchone()[0]
-
+    
     return count > 0

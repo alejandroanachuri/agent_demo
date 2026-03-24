@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.markdown import Markdown
 from rich import print
 from rich.prompt import Prompt
+from rich.rule import Rule
 
 set_tracing_disabled(True)
 load_dotenv()
@@ -55,7 +56,7 @@ build_news_index("https://www.infobae.com/", "infobae",
 session = SQLiteSession("user_124")
 async def main():
     console = Console()
-    print(":face_with_tongue:","[bold blue]News Agent iniciado. Escribe 'salir' para terminar.\n")
+    console.print(Rule(":face_with_tongue:[bold blue]News Agent iniciado. Escribe 'salir' para terminar.\n"))
     while True:
         #user_input = input("Tu: ")
         user_input = Prompt.ask(":hugging_face:[bold blue]Tu: ")

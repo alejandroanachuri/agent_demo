@@ -10,4 +10,5 @@ dependencies = [
     "newspaper3k>=0.2.8",
     "openai-agents>=0.10.5",
     "rich>=14.3.3",
+    "sentence-transformers>=5.3.0",
 ]
